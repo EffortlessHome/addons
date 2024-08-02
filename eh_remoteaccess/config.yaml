@@ -1,6 +1,6 @@
 ---
 name: EffortlessHome Remote Access
-version: dev
+version: 1.0.0
 slug: eh_remote_access
 description: "Use a Cloudflare Tunnel to remotely
   connect to Home Assistant without opening any ports"

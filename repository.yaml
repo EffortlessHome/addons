@@ -1,4 +1,4 @@
 # https://developers.home-assistant.io/docs/add-ons/repository#repository-configuration
 name: EffortlessHome Add-ons
-url: "https://www.effortleshome.co/repo"
+url: "https://github.com/EffortlessHome/addons/"
 maintainer: EffortlessHome

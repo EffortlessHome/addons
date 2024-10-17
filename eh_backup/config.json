@@ -1,9 +1,9 @@
 {
   "name": "EffortlessHome Backup",
-  "version": "1.0",
+  "version": "1.0.2",
   "slug": "eh_backup",
   "description": "Automatically manage backups between Home Assistant and Google Drive",
-  "arch": ["armhf", "armv7", "aarch64", "amd64", "i386"],
+  "arch": ["aarch64"],
   "homeassistant_api": true,
   "hassio_api": true,
   "hassio_role": "admin",

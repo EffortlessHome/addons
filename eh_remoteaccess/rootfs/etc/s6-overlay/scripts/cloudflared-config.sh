@@ -17,51 +17,10 @@ checkConfig() {
     local validHostnameRegex="^(([a-z0-9äöüß]|[a-z0-9äöüß][a-z0-9äöüß\-]*[a-z0-9äöüß])\.)*([a-z0-9]|[a-z0-9][a-z0-9\-]*[a-z0-9])$"
 
     # Check for minimum configuration options
-    if bashio::config.is_empty 'external_hostname' && bashio::config.is_empty 'additional_hosts' &&
-        bashio::config.is_empty 'catch_all_service' && bashio::config.is_empty 'nginx_proxy_manager';
+    if bashio::config.is_empty 'eh_email_address'  &&
+        bashio::config.is_empty 'eh_system_id' ;
     then
-        bashio::exit.nok "Cannot run without tunnel_token, external_hostname, additional_hosts, catch_all_service or nginx_proxy_manager. Please set at least one of these add-on options."
-    fi
-
-    # Check if 'external_hostname' includes a valid hostname
-    if bashio::config.has_value 'external_hostname' ; then
-        if ! [[ $(bashio::config 'external_hostname') =~ ${validHostnameRegex} ]] ; then
-            bashio::exit.nok "'$(bashio::config 'external_hostname')' is not a valid hostname. Please make sure not to include the protocol (e.g. 'https://') nor the port (e.g. ':8123') and only use lowercase characters in the 'external_hostname'."
-        fi
-    fi
-
-    # Check if all defined 'additional_hosts' have non-empty strings as hostname and service
-    if bashio::config.has_value 'additional_hosts' ; then
-        local hostname
-        local service
-        for additional_host in $(bashio::jq "/data/options.json" ".additional_hosts[]"); do
-            bashio::log.debug "Checking host ${additional_host}..."
-            hostname=$(bashio::jq "${additional_host}" ".hostname")
-            service=$(bashio::jq "${additional_host}" ".service")
-            if bashio::var.is_empty "${hostname}" && bashio::var.is_empty "${service}"; then
-                bashio::exit.nok "'hostname' and 'service' in 'additional_hosts' are empty, please enter a valid String"
-            fi
-            if bashio::var.is_empty "${hostname}" ; then
-                bashio::exit.nok "'hostname' in 'additional_hosts' for service ${service} is empty, please enter a valid String"
-            fi
-            # Check if hostname of 'additional_host' includes a valid hostname
-            if ! [[ ${hostname} =~ ${validHostnameRegex} ]] ; then
-                bashio::exit.nok "'${hostname}' in 'additional_hosts' is not a valid hostname. Please make sure not to include the protocol (e.g. 'https://') nor the port (e.g. ':8123') and only use lowercase characters in the 'hostname'."
-            fi
-            if bashio::var.is_empty "${service}" ; then
-                bashio::exit.nok "'service' in 'additional_hosts' for hostname ${hostname} is empty, please enter a valid String"
-            fi
-        done
-    fi
-
-    # Check if 'catch_all_service' is included in config with an empty String
-    if bashio::config.exists 'catch_all_service' && bashio::config.is_empty 'catch_all_service' ; then
-        bashio::exit.nok "'catch_all_service' is defined as an empty String. Please remove 'catch_all_service' from the configuration or enter a valid String"
-    fi
-
-    # Check if 'catch_all_service' and 'nginx_proxy_manager' are both included in config.
-    if bashio::config.has_value 'catch_all_service' && bashio::config.true 'nginx_proxy_manager' ; then
-        bashio::exit.nok "The config includes 'nginx_proxy_manager' and 'catch_all_service'. Please delete one of them since they are mutually exclusive"
+        bashio::exit.nok "Cannot run without email address and system id. Please set these add-on options."
     fi
 }
 
@@ -139,7 +98,7 @@ createCertificate() {
     bashio::log.notice
     cloudflared tunnel login
 
-    bashio::log.info "Authentication successfull, moving auth file to the '${data_path}' folder"
+    bashio::log.info "Authentication successful, moving auth file to the '${data_path}' folder"
 
     mv /root/.cloudflared/cert.pem "${data_path}/cert.pem" || bashio::exit.nok "Failed to move auth file"
 
@@ -231,39 +190,10 @@ createConfig() {
         config=$(bashio::jq "${config}" ".\"ingress\" += [{\"hostname\": \"${external_hostname}\", \"service\": \"${ha_service_protocol}://homeassistant:$(bashio::core.port)\"}]")
     fi
 
-    # Check for configured additional hosts and add them if existing
-    if bashio::config.has_value 'additional_hosts' ; then
-        # Loop additional_hosts to create json config
-        while read -r additional_host; do
-            # Check for originRequest configuration option: disableChunkedEncoding
-            disableChunkedEncoding=$(bashio::jq "${additional_host}" ". | select(.disableChunkedEncoding != null) | .disableChunkedEncoding ")
-            if ! [[ ${disableChunkedEncoding} == "" ]]  ; then
-                additional_host=$(bashio::jq "${additional_host}" "del(.disableChunkedEncoding)")
-                additional_host=$(bashio::jq "${additional_host}" ".originRequest += {\"disableChunkedEncoding\": ${disableChunkedEncoding}}")
-            fi
-            # Add additional_host config to ingress config
-            config=$(bashio::jq "${config}" ".ingress[.ingress | length ] |= . + ${additional_host}")
-        done <<< "$(jq -c '.additional_hosts[]' /data/options.json )"
-    fi
 
-    # Check if NGINX Proxy Manager is used to finalize configuration
-    if bashio::config.true 'nginx_proxy_manager' ; then
-
-        bashio::log.warning "Runing with Nginxproxymanager support, make sure the add-on is installed and running."
-        config=$(bashio::jq "${config}" ".\"ingress\" += [{\"service\": \"http://a0d7b954-nginxproxymanager:80\"}]")
-    else
-
-        # Check if catch all service is defined
-        if bashio::config.has_value 'catch_all_service' ; then
-
-            bashio::log.info "Runing with Catch all Service"
-            # Setting catch all service to defined URL
-            config=$(bashio::jq "${config}" ".\"ingress\" += [{\"service\": \"$(bashio::config 'catch_all_service')\"}]")
-        else
-            # Finalize config without NPM support and catch all service, sending all other requests to HTTP:404
-            config=$(bashio::jq "${config}" ".\"ingress\" += [{\"service\": \"http_status:404\"}]")
-        fi
-    fi
+    # Finalize config without NPM support and catch all service, sending all other requests to HTTP:404
+    config=$(bashio::jq "${config}" ".\"ingress\" += [{\"service\": \"http_status:404\"}]")
+ 
 
     # Deactivate TLS verification for all services
     config=$(bashio::jq "${config}" ".ingress[].originRequest += {\"noTLSVerify\": true}")
@@ -293,17 +223,6 @@ createDNS() {
         || bashio::exit.nok "Failed to create DNS entry ${external_hostname}."
     fi
 
-    # Check for configured additional hosts and create DNS entries for them if existing
-    if bashio::config.has_value 'additional_hosts' ; then
-        for host in $(bashio::jq "/data/options.json" ".additional_hosts[].hostname"); do
-            bashio::log.info "Creating DNS entry ${host}..."
-            if bashio::var.is_empty "${host}" ; then
-                bashio::exit.nok "'hostname' in 'additional_hosts' is empty, please enter a valid String"
-            fi
-            cloudflared --origincert="${data_path}/cert.pem" tunnel --loglevel "${CLOUDFLARED_LOG}" route dns -f "${tunnel_uuid}" "${host}" \
-            || bashio::exit.nok "Failed to create DNS entry ${host}."
-        done
-    fi
 }
 
 # ------------------------------------------------------------------------------
@@ -311,22 +230,64 @@ createDNS() {
 # ------------------------------------------------------------------------------
 setCloudflaredLogLevel() {
 
-# Set cloudflared log to "info" as default
-CLOUDFLARED_LOG="info"
+    # Set cloudflared log to "info" as default
+    CLOUDFLARED_LOG="info"
 
-# Check if user wishes to change log severity
-if bashio::config.has_value 'run_parameters' ; then
-    bashio::log.trace "bashio::config.has_value 'run_parameters'"
-    for run_parameter in $(bashio::config 'run_parameters'); do
-        bashio::log.trace "Checking run_parameter: ${run_parameter}"
-        if [[ $run_parameter == --loglevel=* ]]; then
-            CLOUDFLARED_LOG=${run_parameter#*=}
-            bashio::log.trace "Setting CLOUDFLARED_LOG to: ${run_parameter#*=}"
+    # Check if user wishes to change log severity
+    if bashio::config.has_value 'run_parameters' ; then
+        bashio::log.trace "bashio::config.has_value 'run_parameters'"
+        for run_parameter in $(bashio::config 'run_parameters'); do
+            bashio::log.trace "Checking run_parameter: ${run_parameter}"
+            if [[ $run_parameter == --loglevel=* ]]; then
+                CLOUDFLARED_LOG=${run_parameter#*=}
+                bashio::log.trace "Setting CLOUDFLARED_LOG to: ${run_parameter#*=}"
+            fi
+        done
+    fi
+
+    bashio::log.debug "Cloudflared log level set to \"${CLOUDFLARED_LOG}\""
+
+}
+
+effortlesshomelogic() {
+    # Log that the add-on is starting
+    bashio::log.trace "Starting the EH integration process"
+
+    # Get the email address and system ID from the add-on configuration
+    EH_EMAIL_ADDRESS=$(bashio::config 'eh_email_address')
+    EH_SYSTEM_ID=$(bashio::config 'eh_system_id')
+
+    # Construct the URL for the API call
+    API_URL="https://ehsysteminitialize.effortlesshome.co/getremoteaccessinfo/${EH_EMAIL_ADDRESS}/${EH_SYSTEM_ID}"
+
+    # Log the URL for debugging (optional)
+    bashio::log.trace "Calling EH API at: ${API_URL}"
+
+    # Make the API call and store the response
+    RESPONSE=$(curl -s -X GET "${API_URL}")
+
+    # Check if the response contains valid data
+    if bashio::var.has_value "${RESPONSE}"; then
+        bashio::log.info "EH API call successful, response: ${RESPONSE}"
+
+        # Parse the JSON response using jq to extract Token and URL
+        TOKEN=$(echo "${RESPONSE}" | jq -r '.Token')
+        REMOTE_URL=$(echo "${RESPONSE}" | jq -r '.URL')
+
+        # Check if values were extracted successfully
+        if bashio::var.has_value "${TOKEN}" && bashio::var.has_value "${REMOTE_URL}"; then
+            bashio::log.info "Token: ${TOKEN}"
+            bashio::log.info "Remote Access URL: ${REMOTE_URL}"
+        else
+            bashio::log.error "Failed to extract Token or URL from the response."
+            exit 1  # Exit with error if values could not be extracted
         fi
-    done
-fi
+    else
+        bashio::log.error "EH API call failed or returned an empty response."
+        #exit 1  # Exit with error if the API call fails
+    fi
 
-bashio::log.debug "Cloudflared log level set to \"${CLOUDFLARED_LOG}\""
+    # Continue with the rest of the add-on logic if necessary
 
 }
 
@@ -338,6 +299,7 @@ external_hostname=""
 tunnel_name="homeassistant"
 tunnel_uuid=""
 data_path="/data"
+TOKEN=""
 
 main() {
     bashio::log.trace "${FUNCNAME[0]}"
@@ -350,12 +312,45 @@ main() {
         checkConnectivity
     fi
 
-    # Run service with tunnel token without creating config
-    if bashio::config.has_value 'tunnel_token'; then
-        bashio::log.info "Using Cloudflare Remote Management Tunnel"
-        bashio::log.info "All add-on configuration options except tunnel_token will be ignored."
-        bashio::exit.ok
+    bashio::log.trace "Starting the EH integration process"
+
+    # Get the email address and system ID from the add-on configuration
+    EH_EMAIL_ADDRESS=$(bashio::config 'eh_email_address')
+    EH_SYSTEM_ID=$(bashio::config 'eh_system_id')
+
+    # Construct the URL for the API call
+    API_URL="https://ehsysteminitialize.effortlesshome.co/getremoteaccessinfo/${EH_EMAIL_ADDRESS}/${EH_SYSTEM_ID}"
+
+    # Log the URL for debugging (optional)
+    bashio::log.trace "Calling EH API at: ${API_URL}"
+
+    # Make the API call and store the response
+    RESPONSE=$(curl -s -X GET "${API_URL}")
+
+    # Check if the response contains valid data
+    if bashio::var.has_value "${RESPONSE}"; then
+        bashio::log.info "EH API call successful, response: ${RESPONSE}"
+
+        # Parse the JSON response using jq to extract Token and URL
+        TOKEN=$(echo "${RESPONSE}" | jq -r '.Token')
+        REMOTE_URL=$(echo "${RESPONSE}" | jq -r '.URL')
+
+        # Check if values were extracted successfully
+        if bashio::var.has_value "${TOKEN}" && bashio::var.has_value "${REMOTE_URL}"; then
+            bashio::log.info "Token: ${TOKEN}"
+            bashio::log.info "Remote Access URL: ${REMOTE_URL}"
+
+            bashio::log.info "Using Cloudflare Remote Management Tunnel"
+            bashio::exit.ok
+        else
+            bashio::log.error "Failed to extract Token or URL from the response."
+            exit 1  # Exit with error if values could not be extracted
+        fi
+    else
+        bashio::log.error "EH API call failed or returned an empty response."
+        exit 1  # Exit with error if the API call fails
     fi
+
 
     checkConfig
 
@@ -376,6 +371,8 @@ main() {
     createConfig
 
     createDNS
+
+    
 
     bashio::log.info "Finished setting up the Cloudflare Tunnel"
 }

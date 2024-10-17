@@ -12,11 +12,6 @@ declare -a options
 options+=(--no-autoupdate)
 options+=(--metrics="0.0.0.0:36500")
 
-# Check for post_quantum option
-if bashio::config.true 'post_quantum' ; then
-    bashio::log.trace "bashio::config.true 'post_quantum'"
-    options+=(--post-quantum)
-fi
 
 # Check for additional run parameters
 if bashio::config.has_value 'run_parameters' ; then
@@ -27,15 +22,29 @@ if bashio::config.has_value 'run_parameters' ; then
     done
 fi
 
-# Check if we run local or remote managed tunnel and set related options
-if bashio::config.has_value 'tunnel_token' ; then
-    bashio::log.trace "bashio::config.has_value 'tunnel_token'"
-    options+=(run --token="$(bashio::config 'tunnel_token')")
-else
-    bashio::log.debug "using ${config_file} config file"
-    options+=(--origincert="${certificate}")
-    options+=(--config="${config_file}")
-    options+=(run "$(bashio::config 'tunnel_name')")
+# Get the email address and system ID from the add-on configuration
+EH_EMAIL_ADDRESS=$(bashio::config 'eh_email_address')
+EH_SYSTEM_ID=$(bashio::config 'eh_system_id')
+
+# Construct the URL for the API call
+API_URL="https://ehsysteminitialize.effortlesshome.co/getremoteaccessinfo/${EH_EMAIL_ADDRESS}/${EH_SYSTEM_ID}"
+
+# Log the URL for debugging (optional)
+bashio::log.trace "Calling EH API at: ${API_URL}"
+
+# Make the API call and store the response
+RESPONSE=$(curl -s -X GET "${API_URL}")
+
+# Check if the response contains valid data
+if bashio::var.has_value "${RESPONSE}"; then
+    bashio::log.info "EH API call successful, response: ${RESPONSE}"
+
+    # Parse the JSON response using jq to extract Token and URL
+    TOKEN=$(echo "${RESPONSE}" | jq -r '.Token')
+    REMOTE_URL=$(echo "${RESPONSE}" | jq -r '.URL')
+
+    bashio::log.trace "token retrieved"
+    options+=(run --token="$TOKEN")
 fi
 
 bashio::log.info "Connecting Cloudflare Tunnel..."

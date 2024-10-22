@@ -22,6 +22,21 @@ EffortlessHome provides a suite of powerful add-ons designed to streamline and e
    - **Description**: Provides secure, remote access to your Home Assistant Instance.
    - **Usage**: Requires an EffortlessHome account, free trial available.
 
+### Sections:
+- **Overview**: A general introduction to the repository and what it offers.
+- **Add-ons List**: A description of the key add-ons provided in the repository.
+- **Installation**: Instructions for installing the add-ons via Home Assistant.
+- **Configuration**: Directions on configuring the add-ons.
+- **Development**: Information for developers who want to contribute or modify the add-ons.
+- **License**: Licensing information.
+
+### EffortlessHome Options:
+- **System Restore**: Includes all of the EffortlessHome capabilities below (and other must have components) in one simple sytem restore file. Get up and running quickly and easily.
+- **Add-Ons**: Add-ons for cloud backups and remote access
+- **Integration**: The Core EffortlessHome Native Integration
+- **Blueprints**: A large set of easy to use automation and script blueprints
+- **Theme**: A stylish theme to get the EffortlessHome look and feel
+
 
 ## Installation
 
@@ -78,12 +93,5 @@ For any issues, questions, or suggestions, feel free to open an issue in this re
 
 Thanks for using EffortlessHome Add-ons! We’re constantly working to improve your home automation experience.
 
-### Key Sections:
-- **Overview**: A general introduction to the repository and what it offers.
-- **Add-ons List**: A description of the key add-ons provided in the repository.
-- **Installation**: Instructions for installing the add-ons via Home Assistant.
-- **Configuration**: Directions on configuring the add-ons.
-- **Development**: Information for developers who want to contribute or modify the add-ons.
-- **License**: Licensing information.
 
-Let me know if you'd like any modifications or additional details!
+

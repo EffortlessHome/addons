@@ -62,12 +62,7 @@ To configure an add-on:
 
 ### Running Locally
 
-You can test and develop new add-ons locally by cloning this repository:
-
-```bash
-git clone https://github.com/EffortlessHome/addons.git
-
-Navigate to the individual add-on folder and make any necessary changes. You can run the add-ons within Home Assistant using the local development tools.
+You can test and develop new add-ons locally by cloning this repository. Navigate to the individual add-on folder and make any necessary changes. You can run the add-ons within Home Assistant using the local development tools.
 
 Contributing
 
@@ -75,7 +70,7 @@ We welcome contributions from the community! Please submit a pull request with y
 
 License
 
-This project is licensed under the MIT License. See the LICENSE file for more details.
+This project is licensed under the Apache 2.0 License. See the LICENSE file for more details.
 
 Support
 

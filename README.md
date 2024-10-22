@@ -18,17 +18,10 @@ EffortlessHome provides a suite of powerful add-ons designed to streamline and e
    - **Description**: Automates and schedules Home Assistant snapshot backups.
    - **Usage**: Automatically manage snapshots, store them locally or upload to cloud storage, and delete old backups.
 
-2. **Energy Monitor**  
-   - **Description**: Provides real-time energy usage monitoring and reporting for smart devices.
-   - **Usage**: Get insights into energy consumption patterns and optimize your smart home setup.
+2. **Remote Access**  
+   - **Description**: Provides secure, remote access to your Home Assistant Instance.
+   - **Usage**: Requires an EffortlessHome account, free trial available.
 
-3. **Security Alarm Webhook**  
-   - **Description**: Integrates a custom security alarm system, providing real-time monitoring and control through Home Assistant.
-   - **Usage**: Receive notifications and manage alarm states remotely using Home Assistant.
-
-4. **Presence Simulation**  
-   - **Description**: Simulates the presence of people in your home to deter potential intruders.
-   - **Usage**: Automatically turn lights, appliances, and other devices on and off to mimic human activity.
 
 ## Installation
 
